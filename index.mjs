@@ -92,8 +92,15 @@ function getProviderApiNpm(provider) {
   return provider?.api?.npm ?? provider?.info?.api?.npm;
 }
 
-function isDebugEnabled() {
+function isDebugEnvEnabled() {
   return process?.env?.OPENCODE_SESSION_CACHE_DEBUG === "1";
+}
+
+function isDebugEnabled(provider) {
+  if (isDebugEnvEnabled()) {
+    return true;
+  }
+  return provider?.options?.sessionCacheDebug === true;
 }
 
 let debugFileDisabled = false;
@@ -113,7 +120,7 @@ function resolveDebugFilePath(pluginInput) {
 }
 
 function debugLog(line) {
-  if (!isDebugEnabled() || debugFileDisabled) {
+  if (debugFileDisabled) {
     return;
   }
 
@@ -144,18 +151,37 @@ export async function OpenAISessionCachePlugin(_input) {
   return {
     "chat.params": async (input, output) => {
       const provider = await resolveProvider(input.provider);
+
+      const debug = isDebugEnabled(provider);
+      if (debug) {
+        debugLog(`${new Date().toISOString()} [opencode-openai-session-cache] chat.params enter`);
+      }
+
       // 仅对 OpenAI provider 生效。
       if (!provider || getProviderApiNpm(provider) !== "@ai-sdk/openai") {
+        if (debug) {
+          debugLog(
+            `${new Date().toISOString()} [opencode-openai-session-cache] skip: non-openai provider`,
+          );
+        }
         return;
       }
 
       // 需要显式开启开关，避免对默认行为造成影响。
       if (provider.options?.cacheSessionId !== true) {
+        if (debug) {
+          debugLog(
+            `${new Date().toISOString()} [opencode-openai-session-cache] skip: cacheSessionId not true`,
+          );
+        }
         return;
       }
 
       // 没有合法的 sessionID 时直接无操作。
       if (typeof input.sessionID !== "string") {
+        if (debug) {
+          debugLog(`${new Date().toISOString()} [opencode-openai-session-cache] skip: invalid sessionID`);
+        }
         return;
       }
 
@@ -163,7 +189,6 @@ export async function OpenAISessionCachePlugin(_input) {
       const sess = input.sessionID.replace(/^ses_/, "sess_");
       const headers = normalizeHeadersContainer(output.options?.headers);
 
-      const debug = isDebugEnabled();
       const headersType = Array.isArray(headers) ? "array" : isHeadersLike(headers) ? "headers" : "object";
       const hadX = hasHeaderEntry(headers, "x-session-id");
       const hadSess = hasHeaderEntry(headers, "session_id");
