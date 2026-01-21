@@ -1,0 +1,29 @@
+{
+  "name": "opencode-openai-session-cache",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": "./index.mjs",
+  "files": [
+    "index.mjs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiaozhaodong/opencode-openai-session-cache.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xiaozhaodong/opencode-openai-session-cache/issues"
+  },
+  "homepage": "https://github.com/xiaozhaodong/opencode-openai-session-cache#readme",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "plugin",
+    "openai",
+    "prompt-caching",
+    "x-session-id"
+  ]
+}
