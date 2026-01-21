@@ -89,6 +89,18 @@ function getProviderApiNpm(provider) {
   return provider?.api?.npm ?? provider?.info?.api?.npm;
 }
 
+function isDebugEnabled() {
+  return process?.env?.OPENCODE_SESSION_CACHE_DEBUG === "1";
+}
+
+function maskSessionId(sessionId) {
+  if (typeof sessionId !== "string" || sessionId.length === 0) {
+    return "";
+  }
+  const tail = sessionId.length > 8 ? sessionId.slice(-8) : sessionId;
+  return `${sessionId.slice(0, 5)}...${tail}`;
+}
+
 export async function OpenAISessionCachePlugin(_input) {
   return {
     "chat.params": async (input, output) => {
@@ -112,9 +124,23 @@ export async function OpenAISessionCachePlugin(_input) {
       const sess = input.sessionID.replace(/^ses_/, "sess_");
       const headers = normalizeHeadersContainer(output.options?.headers);
 
+      const debug = isDebugEnabled();
+      const headersType = Array.isArray(headers) ? "array" : isHeadersLike(headers) ? "headers" : "object";
+      const hadX = hasHeaderEntry(headers, "x-session-id");
+      const hadSess = hasHeaderEntry(headers, "session_id");
+
       // 不覆盖用户显式设置的 headers。
       setHeaderIfMissing(headers, "x-session-id", sess);
       setHeaderIfMissing(headers, "session_id", sess);
+
+      if (debug) {
+        // 仅用于临时调试是否生效；默认关闭。
+        console.log(
+          `[opencode-openai-session-cache] enabled cacheSessionId=true ` +
+            `session=${maskSessionId(sess)} headersType=${headersType} ` +
+            `x-session-id=${hadX ? "keep" : "set"} session_id=${hadSess ? "keep" : "set"}`,
+        );
+      }
 
       // 仅更新 output.options 的 headers 字段，保留其它 options。
       output.options = {
