@@ -36,6 +36,10 @@
 
 - Fix OpenCode v1.1.x compatibility: detect OpenAI SDK via `model.api.npm` (not `provider.api.npm`).
 
+## 0.1.9
+
+- Debug logs now include provider identity (id/name) to help diagnose mixed-provider flows.
+
 ## 0.1.0
 
 - Initial release: OpenCode plugin that injects `x-session-id` and `session_id` for OpenAI prompt caching.

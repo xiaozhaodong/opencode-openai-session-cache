@@ -168,6 +168,15 @@ function maskSessionId(sessionId) {
   return `${sessionId.slice(0, 5)}...${tail}`;
 }
 
+function formatProviderName(provider, input) {
+  const providerID = input?.model?.providerID ?? provider?.id;
+  const providerName = provider?.name;
+  if (typeof providerName === "string" && providerName.trim()) {
+    return `${providerID ?? ""}(${providerName.trim()})`;
+  }
+  return providerID ?? "";
+}
+
 export async function OpenAISessionCachePlugin(_input) {
   // 尽量把调试日志写到 OpenCode 的 worktree（通常就是当前项目目录）。
   resolveDebugFilePath(_input);
@@ -191,7 +200,10 @@ export async function OpenAISessionCachePlugin(_input) {
 
       const debug = isDebugEnabled(provider);
       if (debug) {
-        debugLog(`${new Date().toISOString()} [opencode-openai-session-cache] chat.params enter`);
+        debugLog(
+          `${new Date().toISOString()} [opencode-openai-session-cache] chat.params enter ` +
+            `provider=${formatProviderName(provider, input)}`,
+        );
       }
 
       const apiNpm = getModelApiNpm(input) ?? getProviderApiNpm(provider);
@@ -210,7 +222,8 @@ export async function OpenAISessionCachePlugin(_input) {
       if (provider.options?.cacheSessionId !== true) {
         if (debug) {
           debugLog(
-            `${new Date().toISOString()} [opencode-openai-session-cache] skip: cacheSessionId not true`,
+            `${new Date().toISOString()} [opencode-openai-session-cache] skip: cacheSessionId not true ` +
+              `provider=${formatProviderName(provider, input)}`,
           );
         }
         return;
@@ -241,6 +254,7 @@ export async function OpenAISessionCachePlugin(_input) {
           `${new Date().toISOString()} ` +
             `[opencode-openai-session-cache] enabled cacheSessionId=true ` +
             `session=${maskSessionId(sess)} headersType=${headersType} ` +
+            `provider=${formatProviderName(provider, input)} ` +
             `x-session-id=${hadX ? "keep" : "set"} session_id=${hadSess ? "keep" : "set"}`,
         );
       }
