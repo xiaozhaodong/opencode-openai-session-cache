@@ -32,6 +32,10 @@
 
 - Change package entry file name to avoid OpenCode plugin dedup collisions on `index.mjs`.
 
+## 0.1.8
+
+- Fix OpenCode v1.1.x compatibility: detect OpenAI SDK via `model.api.npm` (not `provider.api.npm`).
+
 ## 0.1.0
 
 - Initial release: OpenCode plugin that injects `x-session-id` and `session_id` for OpenAI prompt caching.

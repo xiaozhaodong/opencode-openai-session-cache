@@ -3,7 +3,7 @@
 Adds OpenAI prompt caching headers via the OpenCode plugin hook.
 
 ## Behavior
-- Only active when `provider.api.npm === "@ai-sdk/openai"`
+- Only active when `model.api.npm === "@ai-sdk/openai"`
 - Requires `provider.options.cacheSessionId === true`
 - Adds both `x-session-id` and `session_id`
 - Uses `sessionID` with `ses_` replaced by `sess_`
@@ -25,11 +25,12 @@ plugin:
 ## Provider Config Example
 ```
 provider:
-  openai:
-    api:
-      npm: "@ai-sdk/openai"
+  my-openai-compatible:
+    npm: "@ai-sdk/openai"
     options:
       cacheSessionId: true
+    models:
+      gpt-5.2: {}
 ```
 
 ## Notes

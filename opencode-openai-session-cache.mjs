@@ -3,7 +3,7 @@ import { resolve as resolvePath } from "node:path";
 
 // OpenCode 插件：为 OpenAI Prompt Caching 注入会话相关 headers。
 // 行为契约（与 README/docs 一致）：
-// - 仅对 `provider.api.npm === "@ai-sdk/openai"` 生效
+// - 仅对 `model.api.npm === "@ai-sdk/openai"` 生效（OpenCode v1.1.x 中 provider 本身不包含 api 字段）
 // - 仅在 `provider.options.cacheSessionId === true` 时启用
 // - header 值：把 sessionID 的前缀 `ses_`（仅开头）替换为 `sess_`
 // - 仅在缺失时写入 `x-session-id` 与 `session_id`，不覆盖用户显式设置
@@ -88,8 +88,12 @@ function setHeaderIfMissing(headers, name, value) {
 }
 
 function getProviderApiNpm(provider) {
-  // 兼容不同版本/实现的 provider 结构（ProviderContext / 旧结构）。
+  // 兼容旧版本 provider 结构（历史实现可能挂在 provider.api 或 provider.info.api）。
   return provider?.api?.npm ?? provider?.info?.api?.npm;
+}
+
+function getModelApiNpm(input) {
+  return input?.model?.api?.npm;
 }
 
 function isDebugEnvEnabled() {
@@ -190,11 +194,13 @@ export async function OpenAISessionCachePlugin(_input) {
         debugLog(`${new Date().toISOString()} [opencode-openai-session-cache] chat.params enter`);
       }
 
-      // 仅对 OpenAI provider 生效。
-      if (!provider || getProviderApiNpm(provider) !== "@ai-sdk/openai") {
+      const apiNpm = getModelApiNpm(input) ?? getProviderApiNpm(provider);
+
+      // 仅对 OpenAI SDK 生效。
+      if (!provider || apiNpm !== "@ai-sdk/openai") {
         if (debug) {
           debugLog(
-            `${new Date().toISOString()} [opencode-openai-session-cache] skip: non-openai provider`,
+            `${new Date().toISOString()} [opencode-openai-session-cache] skip: non-openai provider apiNpm=${apiNpm ?? ""}`,
           );
         }
         return;
