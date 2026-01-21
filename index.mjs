@@ -100,9 +100,13 @@ function isDebugEnabled(provider) {
   if (isDebugEnvEnabled()) {
     return true;
   }
-  return provider?.options?.sessionCacheDebug === true;
+  if (provider?.options?.sessionCacheDebug === true) {
+    return true;
+  }
+  return configDebugEnabled;
 }
 
+let configDebugEnabled = false;
 let debugFileDisabled = false;
 let debugFilePath = resolvePath(process.cwd(), "OPENCODE_SESSION_CACHE_DEBUG.log");
 
@@ -137,6 +141,21 @@ function debugLog(line) {
   }
 }
 
+function configWantsDebug(config) {
+  const providers = config?.provider ?? config?.providers;
+  if (!providers || typeof providers !== "object") {
+    return false;
+  }
+
+  for (const value of Object.values(providers)) {
+    const opts = value?.options;
+    if (opts?.sessionCacheDebug === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function maskSessionId(sessionId) {
   if (typeof sessionId !== "string" || sessionId.length === 0) {
     return "";
@@ -149,6 +168,20 @@ export async function OpenAISessionCachePlugin(_input) {
   // 尽量把调试日志写到 OpenCode 的 worktree（通常就是当前项目目录）。
   resolveDebugFilePath(_input);
   return {
+    // 启动阶段日志：用于确认插件是否被加载、调试开关是否生效。
+    // 注意：仅在显式开启调试时才写文件（避免默认污染磁盘）。
+    config: async (config) => {
+      const debug = isDebugEnvEnabled() || configWantsDebug(config);
+      if (!debug) {
+        return;
+      }
+
+      configDebugEnabled = true;
+      debugLog(
+        `${new Date().toISOString()} [opencode-openai-session-cache] config hook enabled ` +
+          `cwd=${process.cwd?.()} debugFile=${debugFilePath}`,
+      );
+    },
     "chat.params": async (input, output) => {
       const provider = await resolveProvider(input.provider);
 

@@ -23,6 +23,11 @@
 - Allow enabling debug logs via provider option `sessionCacheDebug: true` (no env var required).
 - Add stage logs for `chat.params` (enter/skip reasons) when debug enabled.
 
+## 0.1.6
+
+- Add `config` hook debug output when `sessionCacheDebug: true` is present in config.
+- Let config-level debug enable stage logs even if provider options are not visible in `chat.params`.
+
 ## 0.1.0
 
 - Initial release: OpenCode plugin that injects `x-session-id` and `session_id` for OpenAI prompt caching.
