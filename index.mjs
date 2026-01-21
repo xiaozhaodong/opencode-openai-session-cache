@@ -13,23 +13,80 @@ function resolveProvider(inputProvider) {
   return Promise.resolve(inputProvider);
 }
 
-function normalizeHeaders(headers) {
-  // 兼容多种 headers 形态（普通对象 / Headers-like）。
+function isHeadersLike(headers) {
+  return (
+    headers &&
+    typeof headers === "object" &&
+    typeof headers.has === "function" &&
+    typeof headers.set === "function"
+  );
+}
+
+function normalizeHeadersContainer(headers) {
+  // 尽量保留原始 headers 类型，避免影响上游对请求的序列化行为。
+  // - Headers-like: 原样返回
+  // - Array<[string,string]>: 浅拷贝
+  // - Plain object: 浅拷贝
   if (!headers || typeof headers !== "object") {
     return {};
   }
 
-  if (typeof headers.entries === "function") {
-    return Object.fromEntries(headers.entries());
+  if (isHeadersLike(headers)) {
+    return headers;
+  }
+
+  if (Array.isArray(headers)) {
+    return headers.slice();
   }
 
   return { ...headers };
 }
 
 function hasHeader(headers, name) {
-  // Header 名大小写不敏感。
+  // Header 名大小写不敏感（plain object）。
   const target = name.toLowerCase();
   return Object.keys(headers).some((key) => key.toLowerCase() === target);
+}
+
+function hasHeaderEntry(headers, name) {
+  // 兼容 Headers-like / Array / plain object。
+  if (!headers || typeof headers !== "object") {
+    return false;
+  }
+
+  if (isHeadersLike(headers)) {
+    return headers.has(name);
+  }
+
+  if (Array.isArray(headers)) {
+    const target = name.toLowerCase();
+    return headers.some((pair) => Array.isArray(pair) && String(pair[0]).toLowerCase() === target);
+  }
+
+  return hasHeader(headers, name);
+}
+
+function setHeaderIfMissing(headers, name, value) {
+  if (hasHeaderEntry(headers, name)) {
+    return;
+  }
+
+  if (isHeadersLike(headers)) {
+    headers.set(name, value);
+    return;
+  }
+
+  if (Array.isArray(headers)) {
+    headers.push([name, value]);
+    return;
+  }
+
+  headers[name] = value;
+}
+
+function getProviderApiNpm(provider) {
+  // 兼容不同版本/实现的 provider 结构（ProviderContext / 旧结构）。
+  return provider?.api?.npm ?? provider?.info?.api?.npm;
 }
 
 export async function OpenAISessionCachePlugin(_input) {
@@ -37,7 +94,7 @@ export async function OpenAISessionCachePlugin(_input) {
     "chat.params": async (input, output) => {
       const provider = await resolveProvider(input.provider);
       // 仅对 OpenAI provider 生效。
-      if (!provider || provider.api?.npm !== "@ai-sdk/openai") {
+      if (!provider || getProviderApiNpm(provider) !== "@ai-sdk/openai") {
         return;
       }
 
@@ -53,16 +110,11 @@ export async function OpenAISessionCachePlugin(_input) {
 
       // 仅替换前缀 `ses_` -> `sess_`（只替换开头）。
       const sess = input.sessionID.replace(/^ses_/, "sess_");
-      const headers = normalizeHeaders(output.options?.headers);
+      const headers = normalizeHeadersContainer(output.options?.headers);
 
       // 不覆盖用户显式设置的 headers。
-      if (!hasHeader(headers, "x-session-id")) {
-        headers["x-session-id"] = sess;
-      }
-
-      if (!hasHeader(headers, "session_id")) {
-        headers["session_id"] = sess;
-      }
+      setHeaderIfMissing(headers, "x-session-id", sess);
+      setHeaderIfMissing(headers, "session_id", sess);
 
       // 仅更新 output.options 的 headers 字段，保留其它 options。
       output.options = {
