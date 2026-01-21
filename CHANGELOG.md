@@ -9,6 +9,10 @@
 
 - Add optional debug logging gated by `OPENCODE_SESSION_CACHE_DEBUG=1`.
 
+## 0.1.3
+
+- Write debug logs to `OPENCODE_SESSION_CACHE_DEBUG.log` when `OPENCODE_SESSION_CACHE_DEBUG=1`.
+
 ## 0.1.0
 
 - Initial release: OpenCode plugin that injects `x-session-id` and `session_id` for OpenAI prompt caching.

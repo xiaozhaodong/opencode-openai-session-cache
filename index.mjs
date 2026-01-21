@@ -1,3 +1,6 @@
+import { appendFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
+
 // OpenCode 插件：为 OpenAI Prompt Caching 注入会话相关 headers。
 // 行为契约（与 README/docs 一致）：
 // - 仅对 `provider.api.npm === "@ai-sdk/openai"` 生效
@@ -93,6 +96,21 @@ function isDebugEnabled() {
   return process?.env?.OPENCODE_SESSION_CACHE_DEBUG === "1";
 }
 
+let debugFileDisabled = false;
+function debugLog(line) {
+  if (!isDebugEnabled() || debugFileDisabled) {
+    return;
+  }
+
+  const filePath = resolvePath(process.cwd(), "OPENCODE_SESSION_CACHE_DEBUG.log");
+  try {
+    appendFileSync(filePath, line + "\n");
+  } catch (_err) {
+    // 调试日志写入失败不应影响请求；失败后禁用，避免重复触发异常。
+    debugFileDisabled = true;
+  }
+}
+
 function maskSessionId(sessionId) {
   if (typeof sessionId !== "string" || sessionId.length === 0) {
     return "";
@@ -134,9 +152,9 @@ export async function OpenAISessionCachePlugin(_input) {
       setHeaderIfMissing(headers, "session_id", sess);
 
       if (debug) {
-        // 仅用于临时调试是否生效；默认关闭。
-        console.log(
-          `[opencode-openai-session-cache] enabled cacheSessionId=true ` +
+        debugLog(
+          `${new Date().toISOString()} ` +
+            `[opencode-openai-session-cache] enabled cacheSessionId=true ` +
             `session=${maskSessionId(sess)} headersType=${headersType} ` +
             `x-session-id=${hadX ? "keep" : "set"} session_id=${hadSess ? "keep" : "set"}`,
         );
