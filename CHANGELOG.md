@@ -13,6 +13,11 @@
 
 - Write debug logs to `OPENCODE_SESSION_CACHE_DEBUG.log` when `OPENCODE_SESSION_CACHE_DEBUG=1`.
 
+## 0.1.4
+
+- Prefer writing debug logs to the OpenCode worktree; fall back to `/tmp/OPENCODE_SESSION_CACHE_DEBUG.log`.
+- Allow overriding debug log path via `OPENCODE_SESSION_CACHE_DEBUG_FILE`.
+
 ## 0.1.0
 
 - Initial release: OpenCode plugin that injects `x-session-id` and `session_id` for OpenAI prompt caching.

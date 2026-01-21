@@ -97,17 +97,36 @@ function isDebugEnabled() {
 }
 
 let debugFileDisabled = false;
+let debugFilePath = resolvePath(process.cwd(), "OPENCODE_SESSION_CACHE_DEBUG.log");
+
+function resolveDebugFilePath(pluginInput) {
+  const override = process?.env?.OPENCODE_SESSION_CACHE_DEBUG_FILE;
+  if (typeof override === "string" && override.trim()) {
+    debugFilePath = override.trim();
+    return;
+  }
+
+  const base = pluginInput?.worktree ?? pluginInput?.directory;
+  if (typeof base === "string" && base.trim()) {
+    debugFilePath = resolvePath(base.trim(), "OPENCODE_SESSION_CACHE_DEBUG.log");
+  }
+}
+
 function debugLog(line) {
   if (!isDebugEnabled() || debugFileDisabled) {
     return;
   }
 
-  const filePath = resolvePath(process.cwd(), "OPENCODE_SESSION_CACHE_DEBUG.log");
   try {
-    appendFileSync(filePath, line + "\n");
+    appendFileSync(debugFilePath, line + "\n");
   } catch (_err) {
-    // 调试日志写入失败不应影响请求；失败后禁用，避免重复触发异常。
-    debugFileDisabled = true;
+    // 调试日志写入失败不应影响请求；尝试写入 /tmp 作为兜底。
+    try {
+      appendFileSync("/tmp/OPENCODE_SESSION_CACHE_DEBUG.log", line + "\n");
+    } catch (_err2) {
+      // 两个位置都失败则禁用，避免重复触发异常。
+      debugFileDisabled = true;
+    }
   }
 }
 
@@ -120,6 +139,8 @@ function maskSessionId(sessionId) {
 }
 
 export async function OpenAISessionCachePlugin(_input) {
+  // 尽量把调试日志写到 OpenCode 的 worktree（通常就是当前项目目录）。
+  resolveDebugFilePath(_input);
   return {
     "chat.params": async (input, output) => {
       const provider = await resolveProvider(input.provider);
