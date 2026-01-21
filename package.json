@@ -1,11 +1,12 @@
 {
   "name": "opencode-openai-session-cache",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
-  "main": "index.mjs",
-  "exports": "./index.mjs",
+  "main": "opencode-openai-session-cache.mjs",
+  "exports": "./opencode-openai-session-cache.mjs",
   "files": [
     "index.mjs",
+    "opencode-openai-session-cache.mjs",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

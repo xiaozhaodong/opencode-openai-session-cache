@@ -28,6 +28,10 @@
 - Add `config` hook debug output when `sessionCacheDebug: true` is present in config.
 - Let config-level debug enable stage logs even if provider options are not visible in `chat.params`.
 
+## 0.1.7
+
+- Change package entry file name to avoid OpenCode plugin dedup collisions on `index.mjs`.
+
 ## 0.1.0
 
 - Initial release: OpenCode plugin that injects `x-session-id` and `session_id` for OpenAI prompt caching.
